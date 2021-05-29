@@ -2,15 +2,20 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"terraform-serverless-private-registry/lib"
+	"github.com/davecgh/go-spew/spew"
+	"log"
 	"net/http"
+	"terraform-serverless-private-registry/lib"
 )
 
 func main() {
+	spew.Config.Indent = "  "
+	spew.Config.DisableMethods = true
+	spew.Config.DisablePointerMethods = true
+
 	lambda.Start(Handler)
 }
 
@@ -21,12 +26,11 @@ type Response struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	ctxS,_ := json.Marshal(ctx)
-	reqS,_ := json.Marshal(request)
-	fmt.Printf("ctx: %s", ctxS)
-	fmt.Printf("request: %s", reqS)
+	log.Printf("ctx: %s, request: %s", spew.Sdump(ctx), spew.Sdump(request))
+
 	resp := new(Response)
 	resp.Modules = fmt.Sprintf("https://%s/modules/v1", request.RequestContext.DomainName)
 	resp.Providers = fmt.Sprintf("https://%s/providers/v1", request.RequestContext.DomainName)
+
 	return lib.ApiResponse(http.StatusOK, resp)
 }
