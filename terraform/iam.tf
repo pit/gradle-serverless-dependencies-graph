@@ -2,7 +2,7 @@ module "lambdas_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role"
   version = "v4.0.0"
 
-  role_name         = "${var.name_prefix}-lambdas"
+  role_name = "${var.name_prefix}-lambdas"
 
   trusted_role_services = [
     "lambda.amazonaws.com",
@@ -20,33 +20,33 @@ module "lambdas_role" {
 
 data "aws_iam_policy_document" "lambdas_policy" {
   statement {
-    sid       = "AllowReadObjects"
-    actions   = [
+    sid = "AllowReadObjects"
+    actions = [
       "s3:GetObject",
       "s3:GetObjectAcl",
     ]
-    resources = ["${var.bucket_arn}/*"]
+    resources = ["${aws_s3_bucket.this.arn}/*"]
   }
 
   statement {
     sid       = "AllowListObjects"
     actions   = ["s3:ListBucket"]
-    resources = [var.bucket_arn]
+    resources = [aws_s3_bucket.this.arn]
   }
 
   statement {
-    sid       = "CloudWatchLogs"
-    actions   = [
+    sid = "CloudWatchLogs"
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["*"]  # TODO use more strict cloudwatch logs arn
+    resources = ["*"] # TODO use more strict cloudwatch logs arn
   }
 
   statement {
-    sid       = "InvokeLambda"
-    actions   = [
+    sid = "InvokeLambda"
+    actions = [
       "lambda:InvokeFunction",
     ]
     resources = ["*"]

@@ -10,6 +10,10 @@ module "lambda_modules_get" {
   memory_size = 256
   timeout     = 5
 
+  environment_variables = {
+    BUCKET_NAME = aws_s3_bucket.this.id
+  }
+
   create_role = false
   lambda_role = module.lambdas_role.iam_role_arn
 

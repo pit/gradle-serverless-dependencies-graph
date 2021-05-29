@@ -9,10 +9,6 @@ variable "distrib_path" {
   description = "Path to folder with lambda binaries"
 }
 
-variable "bucket_arn" {
-  type = string
-}
-
 variable "domain_name" {
   type = string
 }
@@ -31,6 +27,23 @@ variable "access_log_arns" {
 variable "access_log_format" {
   type    = string
   default = "$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage"
+}
+
+
+variable "bucket_name" {
+  type = string
+}
+
+variable "bucket_readonly_arns" {
+  type = list(string)
+}
+
+variable "bucket_readwrite_arns" {
+  type = list(string)
+}
+
+variable "bucket_admin_arns" {
+  type = list(string)
 }
 
 variable "tags" {
