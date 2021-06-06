@@ -2,24 +2,34 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.uber.org/zap"
-
 	"net/http"
-	"terraform-serverless-private-registry/lib"
+	"terraform-serverless-private-registry/lib/helpers"
+	"terraform-serverless-private-registry/lib/modules"
+	"terraform-serverless-private-registry/lib/storage"
 )
 
 var (
-	modules *lib.Modules
-	logger *zap.Logger
+	modulesSvc *modules.Modules
+	logger     *zap.Logger
 )
 
-func init(){
-	bucketName := "terraform-registry-kvinta-io"
-	logger,_ := lib.InitLogger("DEBUG", true)
-	storage,_ := lib.NewStorage(&bucketName, logger)
-	modules,_ = lib.NewModules(storage, logger)
+const bucketName string = "terraform-registry-kvinta-io"
+
+func init() {
+	var err error
+	logger, err = helpers.InitLogger("DEBUG", true)
+	if err != nil {
+		panic("Cannot start logger")
+	} else {
+		logger.Info("Starting lambda init")
+	}
+	storage, _ := storage.NewStorage(bucketName, logger)
+	modulesSvc, _ = modules.NewModules(storage, logger)
 }
 
 func main() {
@@ -27,16 +37,29 @@ func main() {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	logger.Debug("Lambda called",
-		zap.String("requestId", request.RequestContext.RequestID),
-		zap.Reflect("request", request),
+	defer logger.Sync()
+
+	requestJson, _ := json.Marshal(request)
+	reqId := request.RequestContext.RequestID
+
+	logger.Info(fmt.Sprintf("%s lambda called", reqId),
+		zap.ByteString("request", requestJson),
 	)
 
 	namespace := request.PathParameters["namespace"]
 	name := request.PathParameters["name"]
 	provider := request.PathParameters["provider"]
 
-	resp,_ := modules.ListModuleVersions(ctx, namespace, name, provider)
+	params := modules.InputParams{
+		Namespace: &namespace,
+		Name:      &name,
+		Provider:  &provider,
+	}
+	resp, err := modulesSvc.ListModuleVersions(reqId, params)
 
-	return lib.ApiResponse(http.StatusOK, resp)
+	if err != nil {
+
+	}
+
+	return helpers.ApiResponse(http.StatusOK, resp)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"log"
 	"net/http"
-	"terraform-serverless-private-registry/lib"
+	"terraform-serverless-private-registry/lib/helpers"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 }
 
 type Response struct {
-	Modules string `json:"modules.v1"`
+	Modules   string `json:"modules.v1"`
 	Providers string `json:"providers.v1"`
 	//Login string `json:"modules.v1"`
 }
@@ -32,5 +32,5 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	resp.Modules = fmt.Sprintf("https://%s/modules/v1", request.RequestContext.DomainName)
 	resp.Providers = fmt.Sprintf("https://%s/providers/v1", request.RequestContext.DomainName)
 
-	return lib.ApiResponse(http.StatusOK, resp)
+	return helpers.ApiResponse(http.StatusOK, resp)
 }

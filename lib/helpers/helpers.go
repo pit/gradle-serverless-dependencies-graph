@@ -1,4 +1,4 @@
-package lib
+package helpers
 
 import (
 	"encoding/json"
@@ -7,11 +7,18 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
 )
 
+//type lambdaWrtier struct {
+//	value map[string]interface{}
+//}
+//
+//var writer = &lambdaWrtier{}
+
 func ApiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse, error) {
-	resp := events.APIGatewayProxyResponse{Headers: map[string]string{"Content-Type": "application/json"}}
+	resp := events.APIGatewayProxyResponse{
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
 	resp.StatusCode = status
 
 	stringBody, err := json.Marshal(body)
@@ -30,19 +37,19 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 	spew.Config.DisableMethods = true
 	spew.Config.DisablePointerMethods = true
 
-	var lvl zap.AtomicLevel
-	switch strings.ToLower(logLevel) {
-	case "info":
-		lvl = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	case "warn", "warning":
-		lvl = zap.NewAtomicLevelAt(zapcore.WarnLevel)
-	case "error", "err":
-		lvl = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
-	case "fatal":
-		lvl = zap.NewAtomicLevelAt(zapcore.FatalLevel)
-	default:
-		lvl = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	}
+	//var lvl zap.AtomicLevel
+	//switch strings.ToLower(logLevel) {
+	//case "info":
+	//	lvl = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	//case "warn", "warning":
+	//	lvl = zap.NewAtomicLevelAt(zapcore.WarnLevel)
+	//case "error", "err":
+	//	lvl = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
+	//case "fatal":
+	//	lvl = zap.NewAtomicLevelAt(zapcore.FatalLevel)
+	//default:
+	//	lvl = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	//}
 
 	encoding := "console"
 	if structured {
@@ -50,8 +57,8 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 	}
 
 	cfg := zap.Config{
-		Level:            lvl,
-		Development:      false,
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development:      true,
 		Encoding:         encoding,
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
@@ -66,5 +73,8 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 		},
 	}
 
-	return cfg.Build()
+	logger, err := cfg.Build()
+
+	return logger, err
+
 }
