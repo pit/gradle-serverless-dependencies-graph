@@ -37,7 +37,9 @@ func (s StorageError) Error() string {
 	panic(s.Message)
 }
 
-const PresignUrlDuration = time.Duration(10) * time.Minute
+const PresignUrlDuration = time.Duration(10) * time.Hour
+
+//const PresignUrlDuration = time.Duration(10) * time.Minute
 
 func NewStorage(bucketName string, logger *zap.Logger) (*Storage, error) {
 	awsCfg, err := config.LoadDefaultConfig(context.Background())
@@ -97,7 +99,7 @@ func (svc *Storage) ListDirs(ctxId string, key string) (*[]string, *StorageError
 	return &result, nil
 }
 
-func (svc *Storage) GetDownloadUrl(ctxId string, key string) (*string, *StorageError) {
+func (svc *Storage) GetDownloadUrl(ctxId string, key string, fileName string) (*string, *StorageError) {
 	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetDownloadUrl() called", ctxId),
 		zap.String("key", key),
 	)
@@ -116,9 +118,15 @@ func (svc *Storage) GetDownloadUrl(ctxId string, key string) (*string, *StorageE
 		)
 	}
 
+	contentDisposition := fmt.Sprintf("attachment; filename=%s", fileName)
+	contentType := "application/x-gzip"
+	cacheControl := fmt.Sprintf("max-age=%.0f", PresignUrlDuration.Seconds())
 	paramsSign := &s3.GetObjectInput{
-		Bucket: svc.bucketName,
-		Key:    &key,
+		Bucket:                     svc.bucketName,
+		Key:                        &key,
+		ResponseContentDisposition: &contentDisposition,
+		ResponseCacheControl:       &cacheControl,
+		ResponseContentType:        &contentType,
 	}
 
 	resp, err := svc.clientS3Presigned.PresignGetObject(context.TODO(), paramsSign, s3.WithPresignExpires(PresignUrlDuration))

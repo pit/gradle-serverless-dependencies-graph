@@ -50,7 +50,8 @@ func TestGetDownloadUrl(t *testing.T) {
 	storage, _ := NewStorage(bucketName, logger)
 
 	key := "modules/apps/cryptopro/k8s/0.1.134/apps-cryptopro-k8s-0.1.134.tar.gz"
-	resp, err := storage.GetDownloadUrl("0000", key)
+	filename := "apps-cryptopro-k8s-0.1.134.tar.gz"
+	resp, err := storage.GetDownloadUrl("0000", key, filename)
 
 	if err != nil {
 		t.Error(err)
@@ -74,7 +75,8 @@ func TestGetDownloadUrlNotFound(t *testing.T) {
 	storage, _ := NewStorage(bucketName, logger)
 
 	key := "not_exist"
-	resp, err := storage.GetDownloadUrl("0000", key)
+	filename := "unknown"
+	resp, err := storage.GetDownloadUrl("0000", key, filename)
 
 	if err == nil {
 		t.Error("Error is nil")

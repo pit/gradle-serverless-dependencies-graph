@@ -93,7 +93,8 @@ func (svc *Modules) GetDownloadUrl(ctxId string, params InputParams) (*string, *
 		zap.String("version", *params.Version),
 	)
 	key := fmt.Sprintf("modules/%[1]s/%[2]s/%[3]s/%[4]s/%[1]s-%[2]s-%[3]s-%[4]s.tar.gz", *params.Namespace, *params.Name, *params.Provider, *params.Version)
-	result, err := svc.storageSvc.GetDownloadUrl(ctxId, key)
+	fileName := fmt.Sprintf("%[1]s-%[2]s-%[3]s-%[4]s.tar.gz", *params.Namespace, *params.Name, *params.Provider, *params.Version)
+	result, err := svc.storageSvc.GetDownloadUrl(ctxId, key, fileName)
 
 	if err != nil {
 		return nil, svc.handleError(ctxId, err, "ListModuleVersions", params)

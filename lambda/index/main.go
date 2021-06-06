@@ -19,5 +19,5 @@ type Response struct {
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	resp := new(Response)
 	resp.Status = "OK"
-	return helpers.ApiResponse(http.StatusOK, resp)
+	return helpers.ApiResponse(http.StatusOK, resp), nil
 }

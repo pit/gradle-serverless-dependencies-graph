@@ -7,15 +7,43 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"net/http"
+	"strings"
 )
 
-//type lambdaWrtier struct {
-//	value map[string]interface{}
-//}
-//
-//var writer = &lambdaWrtier{}
+type ResponseNotFound struct {
+	Status *string `json:"status"`
+}
 
-func ApiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse, error) {
+func ApiNotFound() *events.APIGatewayProxyResponse {
+	resp := events.APIGatewayProxyResponse{
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
+	resp.StatusCode = http.StatusNotFound
+
+	status := "Not found"
+	stringBody, err := json.Marshal(&ResponseNotFound{
+		Status: &status,
+	})
+	if err != nil {
+		panic(err)
+	}
+	resp.Body = string(stringBody)
+
+	fmt.Printf("response json: %s", string(stringBody))
+
+	return &resp
+}
+func ApiNoContent() *events.APIGatewayProxyResponse {
+	resp := events.APIGatewayProxyResponse{
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
+	resp.StatusCode = http.StatusNoContent
+
+	return &resp
+}
+
+func ApiResponse(status int, body interface{}) *events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
@@ -29,7 +57,7 @@ func ApiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse,
 
 	fmt.Printf("response json: %s", string(stringBody))
 
-	return &resp, nil
+	return &resp
 }
 
 func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
@@ -37,19 +65,19 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 	spew.Config.DisableMethods = true
 	spew.Config.DisablePointerMethods = true
 
-	//var lvl zap.AtomicLevel
-	//switch strings.ToLower(logLevel) {
-	//case "info":
-	//	lvl = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	//case "warn", "warning":
-	//	lvl = zap.NewAtomicLevelAt(zapcore.WarnLevel)
-	//case "error", "err":
-	//	lvl = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
-	//case "fatal":
-	//	lvl = zap.NewAtomicLevelAt(zapcore.FatalLevel)
-	//default:
-	//	lvl = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	//}
+	var lvl zap.AtomicLevel
+	switch strings.ToLower(logLevel) {
+	case "info":
+		lvl = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	case "warn", "warning":
+		lvl = zap.NewAtomicLevelAt(zapcore.WarnLevel)
+	case "error", "err":
+		lvl = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
+	case "fatal":
+		lvl = zap.NewAtomicLevelAt(zapcore.FatalLevel)
+	default:
+		lvl = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	}
 
 	encoding := "console"
 	if structured {
@@ -57,7 +85,7 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 	}
 
 	cfg := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Level:            lvl,
 		Development:      true,
 		Encoding:         encoding,
 		OutputPaths:      []string{"stderr"},

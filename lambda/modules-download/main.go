@@ -5,11 +5,10 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.uber.org/zap"
+	"os"
 	"terraform-serverless-private-registry/lib/helpers"
 	"terraform-serverless-private-registry/lib/modules"
 	"terraform-serverless-private-registry/lib/storage"
-
-	"net/http"
 )
 
 var (
@@ -18,7 +17,7 @@ var (
 )
 
 func init() {
-	bucketName := "terraform-registry-kvinta-io"
+	bucketName := os.Getenv("BUCKET_NAME")
 	logger, _ = helpers.InitLogger("DEBUG", true)
 	logger.Debug("Lambda loading")
 
@@ -47,9 +46,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 		Provider:  &provider,
 		Version:   &version,
 	}
-	resp, _ := modulesSvc.GetDownloadUrl(request.RequestContext.RequestID, params)
+	resp, err := modulesSvc.GetDownloadUrl(request.RequestContext.RequestID, params)
 
-	lambdaResp, _ := helpers.ApiResponse(http.StatusNoContent, resp)
+	if err != nil {
+		if err.Code == modules.ErrNotFound {
+			return helpers.ApiNotFound(), nil
+		}
+	}
+
+	lambdaResp := helpers.ApiNoContent()
 	lambdaResp.Headers["X-Terraform-Get"] = *resp
 
 	return lambdaResp, nil

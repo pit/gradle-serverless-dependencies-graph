@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.uber.org/zap"
 	"net/http"
+	"os"
 	"terraform-serverless-private-registry/lib/helpers"
 	"terraform-serverless-private-registry/lib/modules"
 	"terraform-serverless-private-registry/lib/storage"
@@ -18,16 +19,9 @@ var (
 	logger     *zap.Logger
 )
 
-const bucketName string = "terraform-registry-kvinta-io"
-
 func init() {
-	var err error
-	logger, err = helpers.InitLogger("DEBUG", true)
-	if err != nil {
-		panic("Cannot start logger")
-	} else {
-		logger.Info("Starting lambda init")
-	}
+	logger, _ = helpers.InitLogger("DEBUG", true)
+	bucketName := os.Getenv("BUCKET_NAME")
 	storage, _ := storage.NewStorage(bucketName, logger)
 	modulesSvc, _ = modules.NewModules(storage, logger)
 }
@@ -58,8 +52,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	resp, err := modulesSvc.ListModuleVersions(reqId, params)
 
 	if err != nil {
-
+		if err.Code == modules.ErrNotFound {
+			helpers.ApiNotFound()
+		}
 	}
 
-	return helpers.ApiResponse(http.StatusOK, resp)
+	return helpers.ApiResponse(http.StatusOK, resp), nil
 }

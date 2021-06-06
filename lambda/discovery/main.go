@@ -32,5 +32,5 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	resp.Modules = fmt.Sprintf("https://%s/modules/v1", request.RequestContext.DomainName)
 	resp.Providers = fmt.Sprintf("https://%s/providers/v1", request.RequestContext.DomainName)
 
-	return helpers.ApiResponse(http.StatusOK, resp)
+	return helpers.ApiResponse(http.StatusOK, resp), nil
 }
