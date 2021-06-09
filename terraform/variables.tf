@@ -17,6 +17,21 @@ variable "domain_acm_arn" {
   type = string
 }
 
+variable "create_dev_domain" {
+  type    = bool
+  default = false
+}
+
+variable "domain_dev_name" {
+  type    = string
+  default = null
+}
+
+variable "domain_dev_acm_arn" {
+  type    = string
+  default = null
+}
+
 variable "access_log_arns" {
   type = object({
     dev  = string

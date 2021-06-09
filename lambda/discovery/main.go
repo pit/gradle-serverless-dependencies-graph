@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/davecgh/go-spew/spew"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"terraform-serverless-private-registry/lib/helpers"
 )
 
-func main() {
-	spew.Config.Indent = "  "
-	spew.Config.DisableMethods = true
-	spew.Config.DisablePointerMethods = true
+var (
+	logger *zap.Logger
+)
 
+func init() {
+	logger, _ = helpers.InitLogger("DEBUG", true)
+}
+
+func main() {
 	lambda.Start(Handler)
 }
 
@@ -26,7 +29,11 @@ type Response struct {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	log.Printf("ctx: %s, request: %s", spew.Sdump(ctx), spew.Sdump(request))
+	defer logger.Sync()
+	logger.Debug("discovery called",
+		zap.String("reqId", request.RequestContext.RequestID),
+		zap.Reflect("request", request),
+	)
 
 	resp := new(Response)
 	resp.Modules = fmt.Sprintf("https://%s/modules/v1", request.RequestContext.DomainName)

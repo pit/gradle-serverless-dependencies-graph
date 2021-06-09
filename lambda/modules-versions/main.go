@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.uber.org/zap"
@@ -33,11 +31,12 @@ func main() {
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	defer logger.Sync()
 
-	requestJson, _ := json.Marshal(request)
+	//requestJson, _ := json.Marshal(request)
 	reqId := request.RequestContext.RequestID
 
-	logger.Info(fmt.Sprintf("%s lambda called", reqId),
-		zap.ByteString("request", requestJson),
+	logger.Info("lambda called",
+		zap.String("reqId", request.RequestContext.RequestID),
+		zap.Reflect("request", request),
 	)
 
 	namespace := request.PathParameters["namespace"]

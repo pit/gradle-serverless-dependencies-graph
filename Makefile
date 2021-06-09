@@ -6,6 +6,8 @@ dep:
 
 .PHONY: build-lambda
 build:
+	$(gobuildcmd) -o bin/authorizer lambda/authorizer/main.go
+
     # lambda for index response
 	$(gobuildcmd) -o bin/default lambda/default/main.go
 	$(gobuildcmd) -o bin/index lambda/index/main.go
@@ -25,6 +27,8 @@ build:
 
 pack:
 	mkdir -p dist
+	zip -j dist/authorizer.zip bin/authorizer
+
 	zip -j dist/default.zip bin/default
 	zip -j dist/index.zip bin/index
 	zip -j dist/discovery.zip bin/discovery

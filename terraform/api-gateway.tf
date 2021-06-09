@@ -5,7 +5,8 @@ locals {
     },
 
     "GET /.well-known/terraform.json" = {
-      lambda = module.lambda_discovery.lambda_function_name
+      lambda              = module.lambda_discovery.lambda_function_name
+      authorizer_required = true
     },
 
     # TODO Phase 3
@@ -23,7 +24,8 @@ locals {
     # },
 
     "GET /modules/v1/{namespace}/{name}/{provider}/versions" = {
-      lambda = module.lambda_modules_versions.lambda_function_name
+      lambda              = module.lambda_modules_versions.lambda_function_name
+      authorizer_required = true
     },
 
     # Unknown URL
@@ -32,7 +34,8 @@ locals {
     # },
 
     "GET /modules/v1/{namespace}/{name}/{provider}/{version}/download" = {
-      lambda = module.lambda_modules_download.lambda_function_name
+      lambda              = module.lambda_modules_download.lambda_function_name
+      authorizer_required = true
     },
     # TODO Phase 2
     # TODO Implement module archive/metainfo upload
@@ -56,11 +59,13 @@ locals {
 
 
     "GET /providers/v1/{namespace}/{type}/versions" = {
-      lambda = module.lambda_providers_versions.lambda_function_name
+      lambda              = module.lambda_providers_versions.lambda_function_name
+      authorizer_required = true
     },
 
     "GET /providers/v1/{namespace}/{type}/{version}/download/{os}/{arch}" = {
-      lambda = module.lambda_providers_download.lambda_function_name
+      lambda              = module.lambda_providers_download.lambda_function_name
+      authorizer_required = true
     },
     # TODO Phase 2
     # TODO Implement module archive/metainfo upload
@@ -93,14 +98,20 @@ module "api" {
 
   # Routes and integrations
   integrations = {
-    for route_path in keys(local.api_routes) : (route_path) => {
-      lambda_arn             = "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${lookup(local.api_routes[route_path], "lambda")}"
-      payload_format_version = "2.0"
-      timeout_milliseconds   = 5000
-    }
-    # api_key_required = true ???
-    # authorization_type = ???
-    # authorizer_id = ???
+    for route_path in keys(local.api_routes) : (route_path) => merge(
+      {
+        lambda_arn             = "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${lookup(local.api_routes[route_path], "lambda")}"
+        payload_format_version = "2.0"
+        timeout_milliseconds   = 5000
+      },
+      can(local.api_routes[route_path].authorizer_required) ? {
+        authorization_type = "CUSTOM"
+        authorizer_id      = aws_apigatewayv2_authorizer.basic_auth.id
+      } : {},
+      can(local.api_routes[route_path].api_key_required) ? {
+        api_key_required = local.api_routes[route_path].api_key_required
+      } : {}
+    )
   }
 
   tags = merge(var.tags, {
@@ -190,5 +201,29 @@ resource "aws_apigatewayv2_api_mapping" "prod" {
   api_id      = module.api.apigatewayv2_api_id
   domain_name = module.api.apigatewayv2_domain_name_id
   stage       = aws_apigatewayv2_stage.prod.id
+}
+
+resource "aws_apigatewayv2_domain_name" "dev" {
+  count = var.create_dev_domain ? 1 : 0
+
+  domain_name = var.domain_dev_name
+
+  domain_name_configuration {
+    certificate_arn = var.domain_dev_acm_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+
+  tags = merge({
+    Name = "terraform-registry/dev"
+  }, var.tags)
+}
+
+resource "aws_apigatewayv2_api_mapping" "dev" {
+  count = var.create_dev_domain ? 1 : 0
+
+  api_id      = module.api.apigatewayv2_api_id
+  domain_name = aws_apigatewayv2_domain_name.dev[0].id
+  stage       = aws_apigatewayv2_stage.dev.id
 }
 

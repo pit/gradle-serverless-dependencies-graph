@@ -30,6 +30,7 @@ func main() {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	defer logger.Sync()
 	logger.Debug("Lambda called",
 		zap.String("requestId", request.RequestContext.RequestID),
 		zap.Reflect("request", request),
