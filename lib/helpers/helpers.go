@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
@@ -105,4 +107,17 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 
 	return logger, err
 
+}
+
+func GenerateMD5(text string) string {
+	hash := md5.Sum([]byte(text))
+	return hex.EncodeToString(hash[:])
+}
+
+func GenerateMD5List(texts []string) []string {
+	result := make([]string, len(texts))
+	for idx, val := range texts {
+		result[idx] = GenerateMD5(val)
+	}
+	return result
 }

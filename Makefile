@@ -6,24 +6,24 @@ dep:
 
 .PHONY: build-lambda
 build:
-	$(gobuildcmd) -o bin/authorizer lambda/authorizer/main.go
+	$(gobuildcmd) -o bin/authorizer lambda/authorizer/*.go
 
-    # lambda for index response
-	$(gobuildcmd) -o bin/default lambda/default/main.go
-	$(gobuildcmd) -o bin/index lambda/index/main.go
-	$(gobuildcmd) -o bin/discovery lambda/discovery/main.go
+	# lambda for index response
+	$(gobuildcmd) -o bin/default lambda/default/*.go
+	$(gobuildcmd) -o bin/index lambda/index/*.go
+	$(gobuildcmd) -o bin/discovery lambda/discovery/*.go
 
 	# https://www.terraform.io/docs/internals/module-registry-protocol.html
-	$(gobuildcmd) -o bin/modules-list lambda/modules-list/main.go
-	$(gobuildcmd) -o bin/modules-search lambda/modules-search/main.go
-	$(gobuildcmd) -o bin/modules-versions lambda/modules-versions/main.go
-	$(gobuildcmd) -o bin/modules-download lambda/modules-download/main.go
-	$(gobuildcmd) -o bin/modules-latest-version lambda/modules-latest-version/main.go
-	$(gobuildcmd) -o bin/modules-get lambda/modules-get/main.go
+	$(gobuildcmd) -o bin/modules-list lambda/modules-list/*.go
+	$(gobuildcmd) -o bin/modules-search lambda/modules-search/*.go
+	$(gobuildcmd) -o bin/modules-versions lambda/modules-versions/*.go
+	$(gobuildcmd) -o bin/modules-download lambda/modules-download/*.go
+	$(gobuildcmd) -o bin/modules-latest-version lambda/modules-latest-version/*.go
+	$(gobuildcmd) -o bin/modules-get lambda/modules-get/*.go
 
 	# https://www.terraform.io/docs/internals/provider-registry-protocol.html
-	$(gobuildcmd) -o bin/providers-versions lambda/providers-versions/main.go
-	$(gobuildcmd) -o bin/providers-download lambda/providers-download/main.go
+	$(gobuildcmd) -o bin/providers-versions lambda/providers-versions/*.go
+	$(gobuildcmd) -o bin/providers-download lambda/providers-download/*.go
 
 pack:
 	mkdir -p dist
