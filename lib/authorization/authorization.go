@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"os"
 	"strings"
+	"terraform-serverless-private-registry/lib/helpers"
 )
 
 type Authorization struct {
@@ -22,10 +23,19 @@ func (svc *Authorization) CheckCredentials(reqId string, username string, passwo
 		zap.String("reqId", reqId),
 		zap.String("user", username),
 	)
-	if pass,found := os.LookupEnv(fmt.Sprintf("USER_%s", strings.ToUpper(username))); found {
-		if pass == password {
+	envVarName := fmt.Sprintf("USER_%s", strings.ToUpper(helpers.GenerateMD5(username)))
+	svc.logger.Debug("Looking to env var",
+		zap.String("env var name", envVarName),
+	)
+	if pass,found := os.LookupEnv(envVarName); found {
+		svc.logger.Debug("Env var found",
+			zap.String("env var name", envVarName),
+			zap.String("env var value", pass),
+			)
+		if pass == helpers.GenerateMD5(password) {
 			return true
 		}
 	}
 	return false
 }
+

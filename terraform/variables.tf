@@ -17,6 +17,11 @@ variable "domain_acm_arn" {
   type = string
 }
 
+variable "create_prod_domain" {
+  type    = bool
+  default = true
+}
+
 variable "create_dev_domain" {
   type    = bool
   default = false
@@ -59,6 +64,10 @@ variable "bucket_readwrite_arns" {
 
 variable "bucket_admin_arns" {
   type = list(string)
+}
+
+variable "users" {
+  type = map(map(string))
 }
 
 variable "tags" {

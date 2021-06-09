@@ -10,9 +10,7 @@ module "lambda_authorizer" {
   memory_size = 256
   timeout     = 5
 
-  environment_variables = {
-    USER_TEST = "test"
-  }
+  environment_variables = { for user_name, user_obj in var.users : "USER_${upper(md5(user_name))}" => md5(user_obj.password) }
 
   create_role = false
   lambda_role = module.lambdas_role.iam_role_arn
