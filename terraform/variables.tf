@@ -66,6 +66,18 @@ variable "bucket_admin_arns" {
   type = list(string)
 }
 
+variable "kms_sign_alias" {
+  type = string
+}
+
+variable "kms_sign_user_arns" {
+  type = list(string)
+}
+
+variable "kms_sign_admin_arns" {
+  type = list(string)
+}
+
 variable "users" {
   type = map(map(string))
 }

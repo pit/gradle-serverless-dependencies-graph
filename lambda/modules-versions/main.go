@@ -52,7 +52,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 
 	if err != nil {
 		if err.Code == modules.ErrNotFound {
-			helpers.ApiNotFound()
+			helpers.ApiErrorNotFound()
 		}
 	}
 

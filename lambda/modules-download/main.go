@@ -51,11 +51,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 
 	if err != nil {
 		if err.Code == modules.ErrNotFound {
-			return helpers.ApiNotFound(), nil
+			return helpers.ApiErrorNotFound(), nil
 		}
 	}
 
-	lambdaResp := helpers.ApiNoContent()
+	lambdaResp := helpers.ApiErrorNoContent()
 	lambdaResp.Headers["X-Terraform-Get"] = *resp
 
 	return lambdaResp, nil

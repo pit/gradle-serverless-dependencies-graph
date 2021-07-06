@@ -99,6 +99,36 @@ func (svc *Storage) ListDirs(ctxId string, key string) (*[]string, *StorageError
 	return &result, nil
 }
 
+func (svc *Storage) GetMetadata(ctxId string, key string) (*map[string]string, *StorageError) {
+	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetMetadata() called", ctxId),
+		zap.String("key", key),
+	)
+
+	params := &s3.HeadObjectInput{
+		Bucket: svc.bucketName,
+		Key:    &key,
+	}
+	resp, err := svc.clientS3.HeadObject(context.Background(), params)
+	if err != nil {
+		return nil, svc.handleError(ctxId, err, "storageSvc.ListDirs", key,
+			zap.String("key", key),
+			zap.Reflect("params", params),
+		)
+	}
+	svc.Logger.Debug(fmt.Sprintf("%s resp", ctxId),
+		zap.Reflect("resp", resp),
+	)
+
+	result := resp.Metadata
+
+	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetMetadata() return", ctxId),
+		zap.String("key", key),
+		zap.Reflect("result", result),
+	)
+
+	return &result, nil
+}
+
 func (svc *Storage) GetDownloadUrl(ctxId string, key string, fileName string) (*string, *StorageError) {
 	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetDownloadUrl() called", ctxId),
 		zap.String("key", key),

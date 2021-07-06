@@ -17,7 +17,7 @@ type ResponseNotFound struct {
 	Status *string `json:"status"`
 }
 
-func ApiNotFound() *events.APIGatewayProxyResponse {
+func ApiErrorNotFound() *events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
@@ -36,7 +36,7 @@ func ApiNotFound() *events.APIGatewayProxyResponse {
 
 	return &resp
 }
-func ApiNoContent() *events.APIGatewayProxyResponse {
+func ApiErrorNoContent() *events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{"Content-Type": "application/json"},
 	}
@@ -57,7 +57,7 @@ func ApiResponse(status int, body interface{}) *events.APIGatewayProxyResponse {
 	}
 	resp.Body = string(stringBody)
 
-	fmt.Printf("response json: %s", string(stringBody))
+	fmt.Printf("response: status=%d, json: %s", resp.StatusCode, string(stringBody))
 
 	return &resp
 }
