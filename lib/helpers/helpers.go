@@ -36,6 +36,28 @@ func ApiErrorNotFound() *events.APIGatewayProxyResponse {
 
 	return &resp
 }
+
+
+func ApiErrorUnknown() *events.APIGatewayProxyResponse {
+	resp := events.APIGatewayProxyResponse{
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
+	resp.StatusCode = http.StatusInternalServerError
+
+	status := "Unknown"
+	stringBody, err := json.Marshal(&ResponseNotFound{
+		Status: &status,
+	})
+	if err != nil {
+		panic(err)
+	}
+	resp.Body = string(stringBody)
+
+	fmt.Printf("response json: %s", string(stringBody))
+
+	return &resp
+}
+
 func ApiErrorNoContent() *events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{"Content-Type": "application/json"},

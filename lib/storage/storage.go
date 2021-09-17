@@ -4,208 +4,193 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"strings"
 	"time"
 )
 
 type Storage struct {
-	bucketName        *string
-	clientS3          *s3.Client
-	clientS3Presigned *s3.PresignClient
-	Logger            *zap.Logger
+	tableName      *string
+	clientDynamoDb *dynamodb.Client
+	Logger         *zap.Logger
 }
 
 const (
 	ErrUnknown = iota
 	ErrObjectNotFound
-	ErrObjectNotAccessible
 )
 
+type Dependencies struct {
+	Dependencies []Dependency `json:"dependencies"`
+}
+
+type Dependency struct {
+	Id      string `json:"id"`
+	Version string `json:"version"`
+}
+
+type UpsertResult struct {
+	UsedCapacity float64
+}
+
 type StorageError struct {
-	Message    string
-	Code       int
-	BucketName string
-	Key        string
-	Err        error
+	Message string
+	Code    int
+	Repo    string
+	Ref     string
+	Id      string
+	Version string
+	Err     error
 }
 
 func (s StorageError) Error() string {
 	panic(s.Message)
 }
 
-const PresignUrlDuration = time.Duration(10) * time.Hour
-
-//const PresignUrlDuration = time.Duration(10) * time.Minute
-
-func NewStorage(bucketName string, logger *zap.Logger) (*Storage, error) {
+func NewStorage(tableName string, logger *zap.Logger) (*Storage, error) {
 	awsCfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		logger.Error("error loading aws config", zap.Error(err))
 		return nil, fmt.Errorf("error loading aws config")
 	}
 
-	clientS3 := s3.NewFromConfig(awsCfg)
-	clientS3Presigned := s3.NewPresignClient(clientS3)
+	clientDynamoDb := dynamodb.NewFromConfig(awsCfg)
 
 	return &Storage{
-		clientS3:          s3.NewFromConfig(awsCfg),
-		clientS3Presigned: clientS3Presigned,
-		bucketName:        &bucketName,
-		Logger:            logger,
+		clientDynamoDb: clientDynamoDb,
+		tableName:      &tableName,
+		Logger:         logger,
 	}, nil
 }
 
-func (svc *Storage) ListDirs(ctxId string, key string) (*[]string, *StorageError) {
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.ListDirs() called", ctxId),
-		zap.String("key", key),
+func (svc *Storage) UpsertRepoInfo(ctxId string, repo string, ref string, deps Dependencies) (*UpsertResult, *StorageError) {
+	svc.Logger.Debug(fmt.Sprintf("%s UpsertRepoInfo() called", ctxId),
+		zap.String("repo", repo),
+		zap.String("ref", ref),
+		zap.Reflect("deps", deps),
 	)
 
-	if !strings.HasSuffix(key, "/") {
-		key = fmt.Sprintf("%s/", key)
+	updated := time.Now().Format(time.RFC3339)
+
+	var itemsToInsert []types.WriteRequest
+	for _, dep := range deps.Dependencies {
+		Id := fmt.Sprintf("%s:%s:%s", repo, ref, dep.Id)
+		itemsToInsert = append(itemsToInsert, types.WriteRequest{
+			PutRequest: &types.PutRequest{
+				Item: map[string]types.AttributeValue{
+					"Id":         &types.AttributeValueMemberS{Value: Id},
+					"Dependency": &types.AttributeValueMemberS{Value: dep.Id},
+					"Version":    &types.AttributeValueMemberS{Value: dep.Version},
+					"Repo":       &types.AttributeValueMemberS{Value: repo},
+					"Ref":        &types.AttributeValueMemberS{Value: ref},
+					"Updated":    &types.AttributeValueMemberS{Value: updated},
+				},
+			},
+		})
 	}
 
-	delimiter := "/"
-	params := &s3.ListObjectsV2Input{
-		Bucket:    svc.bucketName,
-		Prefix:    &key,
-		Delimiter: &delimiter,
+	retry := 5
+	result := UpsertResult{
+		0,
 	}
-	resp, err := svc.clientS3.ListObjectsV2(context.Background(), params)
-	if err != nil {
-		return nil, svc.handleError(ctxId, err, "storageSvc.ListDirs", key,
-			zap.String("key", key),
+	for len(itemsToInsert) > 0 && retry > 0 {
+		params := &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				*svc.tableName: itemsToInsert[:min(25, len(itemsToInsert))],
+			},
+			ReturnConsumedCapacity:      types.ReturnConsumedCapacityIndexes,
+			ReturnItemCollectionMetrics: types.ReturnItemCollectionMetricsSize,
+		}
+
+		svc.Logger.Debug(fmt.Sprintf("%s UpsertRepoInfo()", ctxId),
+			zap.String("repo", repo),
+			zap.String("ref", ref),
 			zap.Reflect("params", params),
 		)
+
+		resp, err := svc.clientDynamoDb.BatchWriteItem(context.Background(), params)
+		if err != nil {
+			return nil, svc.handleError(ctxId, err, "UpsertRepoInfo",
+				map[string]string{
+					"repo": repo,
+					"ref":  ref,
+				},
+				zap.String("repo", repo),
+				zap.String("ref", ref),
+				zap.Reflect("params", params),
+			)
+		}
+		svc.Logger.Debug(fmt.Sprintf("%s UpsertRepoInfo()", ctxId),
+			zap.String("repo", repo),
+			zap.String("ref", ref),
+			zap.Reflect("resp", resp),
+		)
+		result.UsedCapacity = result.UsedCapacity + *resp.ConsumedCapacity[0].CapacityUnits
+
+		if len(itemsToInsert) > 25 {
+			itemsToInsert = itemsToInsert[25:]
+		} else {
+			itemsToInsert = make([]types.WriteRequest, 0)
+		}
+
+		if len(resp.UnprocessedItems) > 0 {
+			retry--
+			itemsToInsert = append(itemsToInsert, resp.UnprocessedItems[*svc.tableName]...)
+		}
 	}
-	svc.Logger.Debug(fmt.Sprintf("%s resp", ctxId),
-		zap.Reflect("resp", resp),
-	)
 
-	var result []string
-
-	for _, path := range resp.CommonPrefixes {
-		result = append(result, *path.Prefix)
-	}
-
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.ListDirs() return", ctxId),
-		zap.String("key", key),
-		zap.Reflect("result", result),
+	svc.Logger.Debug(fmt.Sprintf("%s UpsertRepoInfo()", ctxId),
+		zap.String("repo", repo),
+		zap.String("ref", ref),
 	)
 
 	return &result, nil
 }
 
-func (svc *Storage) GetMetadata(ctxId string, key string) (*map[string]string, *StorageError) {
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetMetadata() called", ctxId),
-		zap.String("key", key),
-	)
-
-	params := &s3.HeadObjectInput{
-		Bucket: svc.bucketName,
-		Key:    &key,
+func min(x, y int) int {
+	if x < y {
+		return x
 	}
-	resp, err := svc.clientS3.HeadObject(context.Background(), params)
-	if err != nil {
-		return nil, svc.handleError(ctxId, err, "storageSvc.ListDirs", key,
-			zap.String("key", key),
-			zap.Reflect("params", params),
-		)
-	}
-	svc.Logger.Debug(fmt.Sprintf("%s resp", ctxId),
-		zap.Reflect("resp", resp),
-	)
-
-	result := resp.Metadata
-
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetMetadata() return", ctxId),
-		zap.String("key", key),
-		zap.Reflect("result", result),
-	)
-
-	return &result, nil
+	return y
 }
 
-func (svc *Storage) GetDownloadUrl(ctxId string, key string, fileName string) (*string, *StorageError) {
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.GetDownloadUrl() called", ctxId),
-		zap.String("key", key),
-	)
-
-	paramsHead := &s3.HeadObjectInput{
-		Bucket: svc.bucketName,
-		Key:    &key,
-	}
-
-	_, err := svc.clientS3.HeadObject(context.TODO(), paramsHead)
-	if err != nil {
-		return nil, svc.handleError(ctxId, err, "storageSvc.GetDownloadUrl.HeadObject", key,
-			zap.Reflect("bucket", svc.bucketName),
-			zap.String("key", key),
-			zap.Reflect("params", paramsHead),
-		)
-	}
-
-	contentDisposition := fmt.Sprintf("attachment; filename=%s", fileName)
-	contentType := "application/x-gzip"
-	cacheControl := fmt.Sprintf("max-age=%.0f", PresignUrlDuration.Seconds())
-	paramsSign := &s3.GetObjectInput{
-		Bucket:                     svc.bucketName,
-		Key:                        &key,
-		ResponseContentDisposition: &contentDisposition,
-		ResponseCacheControl:       &cacheControl,
-		ResponseContentType:        &contentType,
-	}
-
-	resp, err := svc.clientS3Presigned.PresignGetObject(context.TODO(), paramsSign, s3.WithPresignExpires(PresignUrlDuration))
-	if err != nil {
-		return nil, svc.handleError(ctxId, err, "storageSvc.GetDownloadUrl.PresignObject", key,
-			zap.Reflect("bucket", svc.bucketName),
-			zap.String("key", key),
-			zap.Reflect("params", paramsSign),
-		)
-	}
-
-	svc.Logger.Debug(fmt.Sprintf("%s storageSvc.ListDirs() return", ctxId),
-		zap.String("key", key),
-		zap.Reflect("result", &resp.URL),
-	)
-
-	return &resp.URL, nil
-}
-
-func (svc *Storage) handleError(ctxId string, err error, method string, key string, fields ...zap.Field) *StorageError {
+func (svc *Storage) handleError(ctxId string, err error, method string, keys map[string]string, fields ...zap.Field) *StorageError {
 	var oe *smithy.OperationError
 	var errApi *smithy.GenericAPIError
-	if errors.As(err, &oe) && oe.Service() == "S3" {
+	if errors.As(err, &oe) && oe.Service() == "DynamoDB" {
 		if errors.As(err, &errApi) {
 			if errApi.Code == "NotFound" {
 				fields = append(fields, zap.NamedError("errApi", errApi))
-				svc.Logger.Warn(fmt.Sprintf("%s storageSvc.%s() S3.NotFound", ctxId, method),
+				svc.Logger.Warn(fmt.Sprintf("%s storageSvc.%s() DynamoDB.NotFound", ctxId, method),
 					fields...,
 				)
 				return &StorageError{
-					Message:    fmt.Sprintf("Error #%d Object Not Found while generating signed url for %s", ErrObjectNotFound, key),
-					Code:       ErrObjectNotFound,
-					BucketName: *svc.bucketName,
-					Key:        key,
-					Err:        err,
+					Message: fmt.Sprintf("Error #%d Data Not Found", ErrObjectNotFound),
+					Code:    ErrObjectNotFound,
+					Repo:    keys["repo"],
+					Ref:     keys["ref"],
+					Id:      keys["id"],
+					Version: keys["version"],
+					Err:     err,
 				}
 			}
 		}
 	}
 
 	fields = append(fields, zap.NamedError("err", err))
-	svc.Logger.Warn(fmt.Sprintf("%s storageSvc.%s() Unknown", ctxId, method),
+	svc.Logger.Error(fmt.Sprintf("%s storageSvc.%s() Unknown", ctxId, method),
 		fields...,
 	)
 	return &StorageError{
-		Message:    fmt.Sprintf("Error #%d while generating signed url for %s", ErrUnknown, key),
-		Code:       ErrUnknown,
-		BucketName: *svc.bucketName,
-		Key:        key,
-		Err:        err,
+		Message: fmt.Sprintf("Error #%d while quering data", ErrUnknown),
+		Code:    ErrUnknown,
+		Repo:    keys["repo"],
+		Ref:     keys["ref"],
+		Id:      keys["id"],
+		Version: keys["version"],
+		Err:     err,
 	}
 }

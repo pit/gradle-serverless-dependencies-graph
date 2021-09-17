@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"gradle-serverless-dependencies-graph/lib/helpers"
 	"net/http"
-	"terraform-serverless-private-registry/lib/helpers"
 )
 
 func main() {
@@ -18,6 +18,6 @@ type Response struct {
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	resp := new(Response)
-	resp.Status = "OK"
-	return helpers.ApiResponse(http.StatusOK, resp), nil
+	resp.Status = "What do you need?"
+	return helpers.ApiResponse(http.StatusTeapot, resp), nil
 }
