@@ -3,7 +3,7 @@ module "lambda_default" {
   version = "v2.0.0"
 
   function_name = "${var.name_prefix}-default"
-  description   = "Registry API: $default"
+  description   = "Gradle Dependencies: $default"
   handler       = "default"
   runtime       = "go1.x"
 

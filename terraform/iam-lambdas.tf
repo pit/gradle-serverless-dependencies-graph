@@ -20,18 +20,17 @@ module "lambdas_role" {
 
 data "aws_iam_policy_document" "lambdas_policy" {
   statement {
-    sid = "AllowReadObjects"
+    sid = "AllowDynamoDBRW"
     actions = [
-      "s3:GetObject",
-      "s3:GetObjectAcl",
+      "dynamodb:GetItem",
+      "dynamodb:BatchGetItem",
+      "dynamodb:Query",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:BatchWriteItem"
     ]
-    resources = ["${aws_s3_bucket.this.arn}/*"]
-  }
-
-  statement {
-    sid       = "AllowListObjects"
-    actions   = ["s3:ListBucket"]
-    resources = [aws_s3_bucket.this.arn]
+    resources = [aws_dynamodb_table.gradle_dependencies.arn]
   }
 
   statement {

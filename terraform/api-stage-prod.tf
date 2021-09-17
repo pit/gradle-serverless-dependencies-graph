@@ -29,7 +29,7 @@ resource "aws_apigatewayv2_stage" "prod" {
   }
 
   tags = merge(var.tags, {
-    Name = "terraform-registry/prod"
+    Name = "gradle-dependencies/prod"
   })
 
   lifecycle {
@@ -49,10 +49,9 @@ resource "aws_apigatewayv2_domain_name" "prod" {
   }
 
   tags = merge({
-    Name = "terraform-registry/prod"
+    Name = "gradle-dependencies/prod"
   }, var.tags)
 }
-
 
 resource "aws_apigatewayv2_api_mapping" "prod" {
   api_id      = module.api.apigatewayv2_api_id

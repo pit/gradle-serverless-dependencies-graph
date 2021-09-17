@@ -35,7 +35,7 @@ data "aws_iam_policy_document" "apigateway_policy" {
     ]
     resources = concat(
       [for route_path, route_obj in local.api_routes : "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:${route_obj.lambda}"],
-      [module.lambda_authorizer.lambda_function_arn],
+      # [module.lambda_authorizer.lambda_function_arn],
     )
   }
 }

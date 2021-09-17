@@ -29,7 +29,7 @@ resource "aws_apigatewayv2_stage" "dev" {
   }
 
   tags = merge(var.tags, {
-    Name = "terraform-registry/dev"
+    Name = "gradle-dependencies/dev"
   })
 
   lifecycle {
@@ -49,7 +49,7 @@ resource "aws_apigatewayv2_domain_name" "dev" {
   }
 
   tags = merge({
-    Name = "terraform-registry/dev"
+    Name = "gradle-dependencies/dev"
   }, var.tags)
 }
 

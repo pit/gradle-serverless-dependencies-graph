@@ -1,7 +1,7 @@
 variable "name_prefix" {
   type        = string
   description = "Lambda function names prefix"
-  default     = "terraform-registry"
+  default     = "gradle-dependencies"
 }
 
 variable "distrib_path" {
@@ -47,35 +47,6 @@ variable "access_log_arns" {
 variable "access_log_format" {
   type    = string
   default = "$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage"
-}
-
-
-variable "bucket_name" {
-  type = string
-}
-
-variable "bucket_readonly_arns" {
-  type = list(string)
-}
-
-variable "bucket_readwrite_arns" {
-  type = list(string)
-}
-
-variable "bucket_admin_arns" {
-  type = list(string)
-}
-
-variable "kms_sign_alias" {
-  type = string
-}
-
-variable "kms_sign_user_arns" {
-  type = list(string)
-}
-
-variable "kms_sign_admin_arns" {
-  type = list(string)
 }
 
 variable "users" {

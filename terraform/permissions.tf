@@ -10,5 +10,5 @@ resource "aws_lambda_permission" "lambdas_permissions" {
   action       = "lambda:InvokeFunction"
   principal    = "apigateway.amazonaws.com"
 
-  source_arn = "${module.api.apigatewayv2_api_execution_arn}/*/*/*"
+  source_arn = "${module.api.apigatewayv2_api_execution_arn}/*"
 }

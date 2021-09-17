@@ -1,77 +1,33 @@
 locals {
   api_routes = {
-    "GET /" = {
-      lambda = module.lambda_index.lambda_function_name
+    # "GET /" = {
+    #   lambda = module.lambda_index.lambda_function_name
+    # },
+
+    //    "GET /dependencies/{id}" = {
+    //      lambda              = module.lambda_dependencies_list.lambda_function_name
+    //      authorizer_required = false
+    //    },
+    //
+    //    "GET /dependencies/{id}/{version}" = {
+    //      lambda              = module.lambda_dependencies_list.lambda_function_name
+    //      authorizer_required = false
+    //    },
+    //
+    //    "GET /repos/{repo}" = {
+    //      lambda              = module.lambda_repos_list.lambda_function_name
+    //      authorizer_required = false
+    //    },
+    //
+    //    "GET /repos/{repo}/{ref}" = {
+    //      lambda              = module.lambda_repos_list.lambda_function_name
+    //      authorizer_required = false
+    //    },
+
+    "PUT /repositories/v1/{org}/{repo}/{ref+}" = {
+      lambda              = module.lambda_repo_batch_insert_put.lambda_function_name
+      authorizer_required = false
     },
-
-    "GET /.well-known/terraform.json" = {
-      lambda              = module.lambda_discovery.lambda_function_name
-      authorizer_required = true
-    },
-
-    # TODO Phase 3
-    # "GET /modules/v1" = {
-    #   lambda = module.lambda_modules_list.lambda_function_name
-    # },
-    # TODO Phase 3
-    # "GET /modules/v1/{namespace}" = {
-    #   lambda = module.lambda_modules_list.lambda_function_name
-    # },
-
-    # TODO Phase 3
-    # "GET /modules/v1/search" = {
-    #   lambda = module.lambda_modules_search.lambda_function_name
-    # },
-
-    "GET /modules/v1/{namespace}/{name}/{provider}/versions" = {
-      lambda              = module.lambda_modules_versions.lambda_function_name
-      authorizer_required = true
-    },
-
-    # Unknown URL
-    # "GET /modules/v1/{namespace}/{name}/{provider}/download" = {
-    #   lambda = module.lambda_modules_download.lambda_function_name
-    # },
-
-    "GET /modules/v1/{namespace}/{name}/{provider}/{version}/download" = {
-      lambda              = module.lambda_modules_download.lambda_function_name
-      authorizer_required = true
-    },
-    # TODO Phase 2
-    # TODO Implement module archive/metainfo upload
-    # "POST /modules/custom/{namespace}/{name}/{provider}/{version}/upload" = {
-    #   lambda = module.lambda_modules_upload.lambda_function_name
-    # },
-
-    # TODO Phase 3
-    # "GET /modules/v1/{namespace}/{name}" = {
-    #   lambda = module.lambda_modules_latest_version.lambda_function_name
-    # },
-    # TODO Phase 3
-    # "GET /modules/v1/{namespace}/{name}/{provider}" = {
-    #   lambda = module.lambda_modules_latest_version.lambda_function_name
-    # },
-
-    # TODO Phase 3
-    # "GET /modules/v1/{namespace}/{name}/{provider}/{version}" = {
-    #   lambda = module.lambda_modules_get.lambda_function_name
-    # },
-
-
-    "GET /providers/v1/{namespace}/{type}/versions" = {
-      lambda              = module.lambda_providers_versions.lambda_function_name
-      authorizer_required = true
-    },
-
-    "GET /providers/v1/{namespace}/{type}/{version}/download/{os}/{arch}" = {
-      lambda              = module.lambda_providers_download.lambda_function_name
-      authorizer_required = true
-    },
-    # TODO Phase 2
-    # TODO Implement module archive/metainfo upload
-    # "POST /providers/custom/{namespace}/{type}/{version}/upload/{os}/{arch}" = {
-    # lambda = module.lambda_providers_upload.lambda_function_name
-    # },
 
     "$default" = {
       lambda = module.lambda_default.lambda_function_name
@@ -86,8 +42,8 @@ module "api" {
   source  = "terraform-aws-modules/apigateway-v2/aws"
   version = "v1.0.0"
 
-  name          = "terraform-registry"
-  description   = "Serverless terraform registry API"
+  name          = "gradle-dependencies"
+  description   = "Serverless gradle dependencies app"
   protocol_type = "HTTP"
 
   # credentials_arn = module.apigateway_role.iam_role_arn
@@ -106,10 +62,10 @@ module "api" {
         payload_format_version = "2.0"
         timeout_milliseconds   = 5000
       },
-      can(local.api_routes[route_path].authorizer_required) ? {
-        authorization_type = "CUSTOM"
-        authorizer_id      = aws_apigatewayv2_authorizer.basic_auth.id
-      } : {},
+      # can(local.api_routes[route_path].authorizer_required) ? local.api_routes[route_path].authorizer_required ? {
+      #   authorization_type = "CUSTOM"
+      #   authorizer_id      = aws_apigatewayv2_authorizer.basic_auth.id
+      # } : {} : {},
       can(local.api_routes[route_path].api_key_required) ? {
         api_key_required = local.api_routes[route_path].api_key_required
       } : {}
