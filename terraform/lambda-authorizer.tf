@@ -3,7 +3,7 @@ module "lambda_authorizer" {
   version = "v2.0.0"
 
   function_name = "${var.name_prefix}-authorizer"
-  description   = "Registry API Authorizer"
+  description   = "Gradle Authorizer"
   handler       = "authorizer"
   runtime       = "go1.x"
 

@@ -84,6 +84,19 @@ func ApiResponse(status int, body interface{}) *events.APIGatewayProxyResponse {
 	return &resp
 }
 
+func HtmlResponse(status int, body *string) *events.APIGatewayProxyResponse {
+	resp := events.APIGatewayProxyResponse{
+		Headers: map[string]string{"Content-Type": "text/html"},
+	}
+	resp.StatusCode = status
+
+	resp.Body = *body
+
+	fmt.Printf("response: status=%d, body: %s", resp.StatusCode, *body)
+
+	return &resp
+}
+
 func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 	spew.Config.Indent = "  "
 	spew.Config.DisableMethods = true
@@ -129,6 +142,13 @@ func InitLogger(logLevel string, structured bool) (*zap.Logger, error) {
 
 	return logger, err
 
+}
+
+func Min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
 }
 
 func GenerateMD5(text string) string {

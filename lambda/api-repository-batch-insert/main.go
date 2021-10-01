@@ -24,11 +24,18 @@ type Response struct {
 }
 
 func init() {
-	dynamodbTable := os.Getenv("DYNAMODB_TABLE")
-	logger, _ = helpers.InitLogger("DEBUG", true)
-	logger.Debug("Lambda loading")
+	storageTableName := os.Getenv("DYNAMODB_TABLE_STORAGE")
+	dependenciesTableName := os.Getenv("DYNAMODB_TABLE_DEPENDENCIES")
+	repositoriesTableName := os.Getenv("DYNAMODB_TABLE_REPOSITORIES")
+	cfg := storage.StorageConfig{
+		StorageTableName: &storageTableName,
+		DependenciesTableName: &dependenciesTableName,
+		RepositoriesTableName: &repositoriesTableName,
+	}
 
-	storageSvc, _ = storage.NewStorage(dynamodbTable, logger)
+	logger, _ = helpers.InitLogger("DEBUG", true)
+
+	storageSvc, _ = storage.NewStorage(cfg, logger)
 }
 
 func main() {
@@ -44,7 +51,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 
 	repo := fmt.Sprintf("%s/%s", request.PathParameters["org"], request.PathParameters["repo"])
 	ref := request.PathParameters["ref"]
-	var deps storage.Dependencies
+	var deps storage.DependenciesRest
 	json.Unmarshal([]byte(request.Body), &deps)
 
 	logger.Debug("Request data",
@@ -53,7 +60,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 		zap.Reflect("deps", deps),
 	)
 
-	resp, err := storageSvc.UpsertRepoInfo(request.RequestContext.RequestID, repo, ref, deps)
+	resp, err := storageSvc.UpsertRepositoryInfo(request.RequestContext.RequestID, repo, ref, deps)
 
 	if err != nil {
 		return helpers.ApiErrorUnknown(), nil

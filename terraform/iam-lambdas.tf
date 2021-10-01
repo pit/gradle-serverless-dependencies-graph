@@ -30,7 +30,14 @@ data "aws_iam_policy_document" "lambdas_policy" {
       "dynamodb:DeleteItem",
       "dynamodb:BatchWriteItem"
     ]
-    resources = [aws_dynamodb_table.gradle_dependencies.arn]
+    resources = [
+      aws_dynamodb_table.storage.arn,
+      aws_dynamodb_table.repositories.arn,
+      aws_dynamodb_table.dependencies.arn,
+      "${aws_dynamodb_table.storage.arn}/*",
+      "${aws_dynamodb_table.repositories.arn}/*",
+      "${aws_dynamodb_table.dependencies.arn}/*",
+    ]
   }
 
   statement {

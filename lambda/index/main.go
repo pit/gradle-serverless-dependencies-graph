@@ -4,20 +4,20 @@ import (
 	"context"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"gradle-serverless-dependencies-graph/lib/helpers"
 	"net/http"
-	"terraform-serverless-private-registry/lib/helpers"
 )
 
 func main() {
 	lambda.Start(Handler)
 }
 
-type Response struct {
-	Status string `json:"status"`
-}
-
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	resp := new(Response)
-	resp.Status = "OK"
-	return helpers.ApiResponse(http.StatusOK, resp), nil
+	resp := `
+<html><body><pre>
+<a href="/dependency/">Dependencies</a>
+<a href="/repositories/">Repositories</a>
+</pre></body></html>
+`
+	return helpers.HtmlResponse(http.StatusOK, &resp), nil
 }

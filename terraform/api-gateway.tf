@@ -1,32 +1,41 @@
 locals {
   api_routes = {
-    # "GET /" = {
-    #   lambda = module.lambda_index.lambda_function_name
-    # },
-
-    //    "GET /dependencies/{id}" = {
-    //      lambda              = module.lambda_dependencies_list.lambda_function_name
-    //      authorizer_required = false
-    //    },
-    //
-    //    "GET /dependencies/{id}/{version}" = {
-    //      lambda              = module.lambda_dependencies_list.lambda_function_name
-    //      authorizer_required = false
-    //    },
-    //
-    //    "GET /repos/{repo}" = {
-    //      lambda              = module.lambda_repos_list.lambda_function_name
-    //      authorizer_required = false
-    //    },
-    //
-    //    "GET /repos/{repo}/{ref}" = {
-    //      lambda              = module.lambda_repos_list.lambda_function_name
-    //      authorizer_required = false
-    //    },
-
-    "PUT /repositories/v1/{org}/{repo}/{ref+}" = {
-      lambda              = module.lambda_repo_batch_insert_put.lambda_function_name
+    "GET /" = {
+      lambda              = module.lambda_index.lambda_function_name
       authorizer_required = false
+    },
+
+    "GET /dependency" = { # Will show all groups we have (listDependenciesByParent)
+      lambda              = module.lambda_dependencies_list_by_parent.lambda_function_name
+      authorizer_required = true
+    },
+
+    "GET /dependency/{group}" = { # Will show all names from specified group (listDependenciesByParent)
+      lambda              = module.lambda_dependencies_list_by_parent.lambda_function_name
+      authorizer_required = true
+    },
+
+    "GET /dependency/{group}/{name}/{version}" = { # Will show all repositories for specified group,name,version (listRepositoriesByGroupNameVersion)
+      lambda              = module.lambda_repositories_list_by_dep.lambda_function_name
+      authorizer_required = true
+    },
+
+    "GET /repository" = { # Will show all repos we have (listRepositoriesByParent)
+      lambda              = module.lambda_repository_list_by_parent.lambda_function_name
+      authorizer_required = true
+    },
+    "GET /repository/{org}/{repo}" = { # Will show all refs we have for specified repo (listRepositoriesByParent)
+      lambda              = module.lambda_repository_list_by_parent.lambda_function_name
+      authorizer_required = true
+    },
+    "GET /repository/{org}/{repo}/{ref+}" = { # Will show all dependencies for specified org,repo,ref (listDependenciesByRepoRef)
+      lambda              = module.lambda_dependencies_list_by_repo.lambda_function_name
+      authorizer_required = true
+    },
+
+    "PUT /api/v1/repository/{org}/{repo}/{ref+}" = {
+      lambda              = module.lambda_repo_batch_insert_put.lambda_function_name
+      authorizer_required = true
     },
 
     "$default" = {
@@ -62,17 +71,14 @@ module "api" {
         payload_format_version = "2.0"
         timeout_milliseconds   = 5000
       },
-      # can(local.api_routes[route_path].authorizer_required) ? local.api_routes[route_path].authorizer_required ? {
-      #   authorization_type = "CUSTOM"
-      #   authorizer_id      = aws_apigatewayv2_authorizer.basic_auth.id
-      # } : {} : {},
-      can(local.api_routes[route_path].api_key_required) ? {
-        api_key_required = local.api_routes[route_path].api_key_required
-      } : {}
+      can(local.api_routes[route_path].authorizer_required) ? local.api_routes[route_path].authorizer_required ? {
+        authorization_type = "CUSTOM"
+        authorizer_id      = aws_apigatewayv2_authorizer.basic_auth.id
+      } : {} : {},
     )
   }
 
   tags = merge(var.tags, {
-    Name = "terraform-registry"
+    Name = "gradle-dependencies"
   })
 }

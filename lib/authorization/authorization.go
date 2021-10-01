@@ -3,9 +3,9 @@ package authorization
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"gradle-serverless-dependencies-graph/lib/helpers"
 	"os"
 	"strings"
-	"terraform-serverless-private-registry/lib/helpers"
 )
 
 type Authorization struct {

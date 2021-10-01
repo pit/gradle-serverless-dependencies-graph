@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.uber.org/zap"
+	"gradle-serverless-dependencies-graph/lib/authorization"
+	"gradle-serverless-dependencies-graph/lib/helpers"
 	"os"
 	"strings"
-	"terraform-serverless-private-registry/lib/authorization"
-	"terraform-serverless-private-registry/lib/helpers"
 )
 
 var (
@@ -41,12 +41,21 @@ func Handler(request APIGatewayAuthorizerRequest) (*APIGatewayAuthorizerResponse
 	)
 
 	region := os.Getenv("AWS_REGION")
-	resourceArn := fmt.Sprintf("arn:aws:execute-api:%s:%s:%s/%s/GET/*",
-		region,
-		request.RequestContext.AccountID,
-		request.RequestContext.ApiId,
-		request.RequestContext.Stage,
-	)
+	resourceArn := []string{
+		fmt.Sprintf("arn:aws:execute-api:%s:%s:%s/%s/GET/*",
+			region,
+			request.RequestContext.AccountID,
+			request.RequestContext.ApiId,
+			request.RequestContext.Stage,
+		),
+		fmt.Sprintf("arn:aws:execute-api:%s:%s:%s/%s/PUT/*",
+			region,
+			request.RequestContext.AccountID,
+			request.RequestContext.ApiId,
+			request.RequestContext.Stage,
+		),
+	}
+
 
 	if len(request.IdentitySource) >= 1 {
 		identitySource := strings.Split(request.IdentitySource[0], " ")
@@ -80,7 +89,7 @@ func Handler(request APIGatewayAuthorizerRequest) (*APIGatewayAuthorizerResponse
 	return resp, nil
 }
 
-func generatePolicy(principalId string, effect string, resourceArn string) *APIGatewayAuthorizerResponse {
+func generatePolicy(principalId string, effect string, resourceArn []string) *APIGatewayAuthorizerResponse {
 	return &APIGatewayAuthorizerResponse{
 		PrincipalID: principalId,
 		PolicyDocument: IAMPolicyDocument{
@@ -89,7 +98,7 @@ func generatePolicy(principalId string, effect string, resourceArn string) *APIG
 				{
 					Action:   []string{"execute-api:Invoke"},
 					Effect:   effect,
-					Resource: []string{resourceArn},
+					Resource: resourceArn,
 				},
 			},
 		},

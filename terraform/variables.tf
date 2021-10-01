@@ -50,7 +50,9 @@ variable "access_log_format" {
 }
 
 variable "users" {
-  type = map(map(string))
+  type = map(object({
+    password = string
+  }))
 }
 
 variable "tags" {

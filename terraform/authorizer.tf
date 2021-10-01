@@ -1,5 +1,5 @@
 resource "aws_apigatewayv2_authorizer" "basic_auth" {
-  name = "terraform-registry-basic-auth"
+  name = "basic-auth"
 
   api_id           = module.api.apigatewayv2_api_id
   authorizer_type  = "REQUEST"

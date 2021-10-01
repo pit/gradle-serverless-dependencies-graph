@@ -3,12 +3,18 @@ module "lambda_index" {
   version = "v2.0.0"
 
   function_name = "${var.name_prefix}-index"
-  description   = "Registry API: /"
+  description   = "Gradle: /"
   handler       = "index"
   runtime       = "go1.x"
 
   memory_size = 256
   timeout     = 5
+
+  environment_variables = {
+    DYNAMODB_TABLE_STORAGE      = aws_dynamodb_table.storage.id
+    DYNAMODB_TABLE_REPOSITORIES = aws_dynamodb_table.repositories.id
+    DYNAMODB_TABLE_DEPENDENCIES = aws_dynamodb_table.dependencies.id
+  }
 
   create_role = false
   lambda_role = module.lambdas_role.iam_role_arn
